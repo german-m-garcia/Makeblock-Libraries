@@ -185,6 +185,11 @@ int8_t vx = 0, vy = 0;
 long position_enc1 = 0;
 long position_enc2 = 0;
 
+long ticks2 = 0;
+long ticks1 = 0;
+float speed1 = 0.f;
+float speed2 = 0.f;
+
 double lastReceivedTime = 0.0;
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -2894,6 +2899,45 @@ int16_t readMotionCommand()
   return valShort.shortVal;
 }
 
+void loopDebug()
+{
+  angleX = gyro.getAngleX();
+  angleY = gyro.getAngleY();
+  angleZ = gyro.getAngleZ();
+  
+  //read current status of encoder_1
+  position_enc2 = Encoder_2.getCurPos();
+  position_enc1 = Encoder_1.getCurPos();
+
+  ticks2 = Encoder_2.getPulsePos();
+  ticks1 = Encoder_1.getPulsePos();
+
+  speed2 = Encoder_2.getCurrentSpeed();
+  speed1 = Encoder_1.getCurrentSpeed();
+
+  Serial.print( "Pulse Pos:");
+  Serial.print(ticks2);
+  Serial.print( " , ");
+  
+  
+  Serial.print(ticks1);
+  Serial.print( " - ");
+
+  Serial.print( "speeds: ");
+  Serial.print(speed2);
+  Serial.print( " ,");
+  
+  Serial.print(speed1);
+  Serial.print( " - ");
+
+  Serial.print( "pos encoders:");
+  Serial.print(position_enc2);
+  Serial.print( " , ");
+  Serial.print(position_enc1);
+  Serial.println( " | ");  
+  
+}
+
 /**
  * \par Function
  *    loop
@@ -2925,6 +2969,9 @@ void loop()
    Encoder_1.loop();
    Encoder_2.loop();
    gyro.update();
+   
+   //loopDebug();
+   //return;
 
    if (Serial.available() >= 4){
     bool startPhrase = false;
@@ -2955,12 +3002,18 @@ void loop()
        angleY = gyro.getAngleY();
        angleZ = gyro.getAngleZ();
       
-       //read current status of encoder_1
-       position_enc2 = Encoder_2.getCurPos();
-       position_enc1 = Encoder_1.getCurPos();
-       sendLong(position_enc2);
-       sendLong(position_enc1);
-       //send the yaw
+       //read current status of encoders
+       ticks2 = Encoder_2.getPulsePos();
+       ticks1 = Encoder_1.getPulsePos();
+
+       speed2 = Encoder_2.getCurrentSpeed();
+       speed1 = Encoder_1.getCurrentSpeed();
+       sendLong(ticks2);
+       sendLong(ticks1);
+       // send the encoder velocities
+       sendFloat(speed2);
+       sendFloat(speed1);
+       //send the gyro data
        sendDouble(angleX);
        sendDouble(angleY);
        sendDouble(angleZ);      
