@@ -181,7 +181,7 @@ double angleX = 0.;
 double angleY = 0.;
 double angleZ = 0.;
     
-int8_t vx = 0, vy = 0;
+int16_t vx = 0, vy = 0;
 long position_enc1 = 0;
 long position_enc2 = 0;
 
@@ -3012,11 +3012,14 @@ void loop()
        sendLong(ticks1);
        // send the encoder velocities
        sendFloat(speed2);
-       sendFloat(speed1);
+       sendFloat(speed1);       
        //send the gyro data
        sendDouble(angleX);
        sendDouble(angleY);
        sendDouble(angleZ);      
+
+       sendShort(vx);
+       sendShort(vy);
        
        Serial.flush();
   }
