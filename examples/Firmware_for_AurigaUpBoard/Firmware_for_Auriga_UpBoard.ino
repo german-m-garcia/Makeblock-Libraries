@@ -3016,11 +3016,7 @@ void loop()
        //send the gyro data
        sendDouble(angleX);
        sendDouble(angleY);
-       sendDouble(angleZ);      
-
-       sendShort(vx);
-       sendShort(vy);
-       
+       sendDouble(angleZ);
        Serial.flush();
   }
 
