@@ -182,6 +182,7 @@ double angleY = 0.;
 double angleZ = 0.;
     
 int16_t vx = 0, vy = 0;
+float speedX = 0.f, speedY = 0.f;
 long position_enc1 = 0;
 long position_enc2 = 0;
 
@@ -494,6 +495,13 @@ void GenericMove(int16_t x, int16_t y)
   
    Encoder_1.setMotorPwm(x);
    Encoder_2.setMotorPwm(-y);
+}
+
+void genericMoveSpeed(float vx, float vy)
+{ 
+  
+   Encoder_1.runSpeed(vx);
+   Encoder_2.runSpeed(-vy);
 }
 
 /**
@@ -2878,9 +2886,12 @@ void setup()
   update_sensor = lasttime_speed = lasttime_angle = millis();
   blink_time = millis();
 
-  vx = 0;
-  vy = 0;
-  GenericMove(0,0);
+  //vx = 0;
+  //vy = 0;
+  //GenericMove(0,0);
+  speedX = 0.f;
+  speedY = 0.f;
+  genericMoveSpeed( speedX, speedY);
 
   Serial.print("Version: ");
   Serial.println(mVersion);
@@ -2897,6 +2908,15 @@ int16_t readMotionCommand()
   valShort.byteVal[0] = Serial.read();
   valShort.byteVal[1] = Serial.read();
   return valShort.shortVal;
+}
+
+float readMotionCommandFloat()
+{
+  val.byteVal[0] = Serial.read();
+  val.byteVal[1] = Serial.read();
+  val.byteVal[2] = Serial.read();
+  val.byteVal[3] = Serial.read();
+  return val.floatVal;
 }
 
 void loopDebug()
@@ -2938,6 +2958,54 @@ void loopDebug()
   
 }
 
+void loopDebugSpeeds()
+{
+  if(Serial.available())
+  {
+    char a = Serial.read();
+    switch(a)
+    {
+      case '0':
+      Encoder_1.runSpeed(0);
+      Encoder_2.runSpeed(0);
+      break;
+      case '1':
+      Encoder_1.runSpeed(60);
+      Encoder_2.runSpeed(-60);
+      break;
+      case '2':
+      Encoder_1.runSpeed(120);
+      Encoder_2.runSpeed(-120);
+      break;
+      case '3':
+      Encoder_1.runSpeed(255);
+      Encoder_2.runSpeed(-255);
+      break;
+      case '4':
+      Encoder_1.runSpeed(-100);
+      Encoder_2.runSpeed(100);
+      break;
+      case '5':
+      Encoder_1.runSpeed(-200);
+      Encoder_2.runSpeed(200);
+      break;
+      case '6':
+      Encoder_1.runSpeed(-255);
+      Encoder_2.runSpeed(255);
+      break;
+      default:
+      break;
+    }
+  }
+  Encoder_1.loop();
+  Encoder_2.loop();
+  Serial.print("Spped 1:");
+  Serial.print(Encoder_1.getCurrentSpeed());
+  Serial.print(" ,Spped 2:");
+  Serial.println(Encoder_2.getCurrentSpeed());
+  wdt_reset();
+}
+
 /**
  * \par Function
  *    loop
@@ -2969,9 +3037,6 @@ void loop()
    Encoder_1.loop();
    Encoder_2.loop();
    gyro.update();
-   
-   //loopDebug();
-   //return;
 
    if (Serial.available() >= 4){
     bool startPhrase = false;
@@ -2987,13 +3052,13 @@ void loop()
         startPhrase = true;
          
      
-     if (startPhrase && Serial.available() >= 4) {
+     if (startPhrase && Serial.available() >= 8) {
   
          lastReceivedTime = currentTime;
          // receive vx, vy
          
-         vx = readMotionCommand();
-         vy = readMotionCommand();
+         speedX = readMotionCommandFloat();
+         speedY = readMotionCommandFloat();
          wdt_reset();
     }
    }
@@ -3024,11 +3089,12 @@ void loop()
     if( currentTime - lastReceivedTime > 1000)
     {
          // reset speeds
-         vx = 0;
-         vy = 0;
+         speedX = 0;
+         speedY = 0;
     }
 
-    GenericMove(vx, vy);
+    // GenericMove(vx, vy);
+    genericMoveSpeed(speedX, speedY);
     
     return;
 }
