@@ -58,6 +58,7 @@
 #include "MeWifi.h"
 #include "MeTemperature.h"
 #include "MeGyro.h"
+#include "MeGyroRaw.h"
 #include "MeInfraredReceiver.h"
 #include "MeCompass.h"
 #include "MeUSBHost.h"

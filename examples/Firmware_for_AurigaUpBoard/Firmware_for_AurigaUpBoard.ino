@@ -45,7 +45,8 @@ MePort generalDevice;
 MeLEDMatrix ledMx;
 MeInfraredReceiver *ir = NULL;  //PORT_8
 MeGyro gyro_ext(0,0x68);  //external gryo sensor
-MeGyro gyro(1,0x69);      //On Board external gryo sensor
+// MeGyro gyro(1,0x69);      //On Board external gryo sensor
+MeGyroRaw gyro(1,0x69);      //On Board external gryo sensor - raw data
 MeCompass Compass;
 MeJoystick joystick;
 MeStepper steppers[4];
@@ -177,10 +178,16 @@ boolean blink_flag = false;
 
 String mVersion = "09.01.012";
 
-double angleX = 0.;
-double angleY = 0.;
-double angleZ = 0.;
-    
+// IMU variables
+double rotX = 0.; // Rotation speeds around each axis: degrees / s
+double rotY = 0.;
+double rotZ = 0.;
+
+double accX = 0.;  // acceleration on each axis
+double accY = 0.;
+double accZ = 0.;
+
+// Encoders / speeds
 int16_t vx = 0, vy = 0;
 float speedX = 0.f, speedY = 0.f;
 long position_enc1 = 0;
@@ -2832,8 +2839,8 @@ void setup()
 
   // enable the watchdog
   wdt_enable(WDTO_2S);
-  delay(5);
-  gyro_ext.begin();
+  //delay(5);
+  //gyro_ext.begin();
   delay(5);
   wdt_reset();
   gyro.begin();
@@ -2919,42 +2926,50 @@ float readMotionCommandFloat()
   return val.floatVal;
 }
 
-void loopDebug()
+void loopDebugGyro()
 {
-  angleX = gyro.getAngleX();
-  angleY = gyro.getAngleY();
-  angleZ = gyro.getAngleZ();
+
+  currentTime = millis();
+  if(millis() - blink_time > 1000)
+  {
+   blink_time = millis();
+   blink_flag = !blink_flag;
+   digitalWrite(13,blink_flag);
+  }
   
-  //read current status of encoder_1
-  position_enc2 = Encoder_2.getCurPos();
-  position_enc1 = Encoder_1.getCurPos();
+  
+  wdt_reset();
+  get_power();
+  //Encoder_1.loop();
+  //Encoder_2.loop();
+  gyro.update();
+   
+  rotX = gyro.getAngleX();
+  rotY = gyro.getAngleY();
+  rotZ = gyro.getAngleZ();
 
-  ticks2 = Encoder_2.getPulsePos();
-  ticks1 = Encoder_1.getPulsePos();
+  double accX = gyro.getAccX();
+  double accY = gyro.getAccY();
+  double accZ = gyro.getAccZ();
 
-  speed2 = Encoder_2.getCurrentSpeed();
-  speed1 = Encoder_1.getCurrentSpeed();
-
-  Serial.print( "Pulse Pos:");
-  Serial.print(ticks2);
+  Serial.print( "Gyro:");
+  Serial.print(rotX);
   Serial.print( " , ");
-  
-  
-  Serial.print(ticks1);
-  Serial.print( " - ");
-
-  Serial.print( "speeds: ");
-  Serial.print(speed2);
-  Serial.print( " ,");
-  
-  Serial.print(speed1);
-  Serial.print( " - ");
-
-  Serial.print( "pos encoders:");
-  Serial.print(position_enc2);
+  Serial.print(rotY);
   Serial.print( " , ");
-  Serial.print(position_enc1);
+  Serial.print(rotZ);
+  Serial.print( " | ");  
+
+  Serial.print( "Acc:");
+  Serial.print(accX);
+  Serial.print( " , ");
+  Serial.print(accY);
+  Serial.print( " , ");
+  Serial.print(accZ);
   Serial.println( " | ");  
+
+  wdt_reset();
+  delay(1);
   
 }
 
@@ -3063,9 +3078,14 @@ void loop()
     }
    }
   else{
-       angleX = gyro.getAngleX();
-       angleY = gyro.getAngleY();
-       angleZ = gyro.getAngleZ();
+       // read IMU data
+       rotX = gyro.getAngleX();
+       rotY = gyro.getAngleY();
+       rotZ = gyro.getAngleZ();
+
+       accX = gyro.getAccX();
+       accY = gyro.getAccY();
+       accZ = gyro.getAccZ();
       
        //read current status of encoders
        ticks2 = Encoder_2.getPulsePos();
@@ -3078,10 +3098,13 @@ void loop()
        // send the encoder velocities
        sendFloat(speed2);
        sendFloat(speed1);       
-       //send the gyro data
-       sendDouble(angleX);
-       sendDouble(angleY);
-       sendDouble(angleZ);
+       //send the IMU data
+       sendDouble(rotX);
+       sendDouble(rotY);
+       sendDouble(rotZ);
+       sendDouble(accX);
+       sendDouble(accY);
+       sendDouble(accZ);
        Serial.flush();
   }
 
